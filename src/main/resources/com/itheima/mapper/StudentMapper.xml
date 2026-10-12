@@ -1,0 +1,104 @@
+<!--定义Mapper映射文件的约束和基本结构-->
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.StudentMapper">
+    <!-- 添加学员 -->
+    <insert id="save">
+        INSERT INTO student
+        (name, no, gender, phone, id_card, is_college, address, degree, graduation_date, clazz_id, violation_count, violation_score, create_time, update_time)
+        VALUES
+            (#{name}, #{no}, #{gender}, #{phone}, #{idCard}, #{isCollege}, #{address}, #{degree}, #{graduationDate}, #{clazzId}, #{violationCount}, #{violationScore}, #{createTime}, #{updateTime})
+    </insert>
+    <!-- 修改学员 -->
+    <update id="update">
+        UPDATE student
+        <set>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="no != null and no != ''">no = #{no},</if>
+            <if test="phone != null and phone != ''">phone = #{phone},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="degree != null">degree = #{degree},</if>
+            <if test="idCard != null">id_card = #{idCard},</if>
+            <if test="isCollege != null">is_college = #{isCollege},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="graduationDate != null">graduation_date = #{graduationDate},</if>
+            <if test="violationCount != null">violation_count = #{violationCount},</if>
+            <if test="violationScore != null">violation_score = #{violationScore},</if>
+            <if test="clazzId != null">clazz_id = #{clazzId},</if>
+            update_time = #{updateTime}
+        </set>
+        WHERE id = #{id}
+    </update>
+    <!-- 违纪处理 -->
+    <update id="updateViolation">
+        UPDATE student
+        SET
+            violation_count = violation_count + 1,
+            violation_score = violation_score + #{score},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+    <!-- 统计学员的学历信息 -->
+    <select id="countStudentDegreeData" resultType="java.util.Map">
+        select
+            (case degree
+                 when 1 then '初中'
+                 when 2 then '高中'
+                 when 3 then '大专'
+                 when 4 then '本科'
+                 when 5 then '硕士'
+                 when 6 then '博士'
+                 else '其他' end) as name,
+            count(*) as value
+        from student
+        group by degree
+        order by degree
+    </select>
+    <!--  根据id批量删除学员信息 -->
+    <delete id="deleteByIds">
+        DELETE FROM student
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    <!-- 学员列表数据的条件分页查询 -->
+    <select id="list" resultType="com.itheima.pojo.Student">
+    SELECT
+    s.*,
+    c.name AS clazzName
+    FROM student s
+    LEFT JOIN clazz c ON s.clazz_id = c.id
+    <where>
+        <if test="name != null and name != ''">
+            AND s.name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="degree != null">
+            AND s.degree = #{degree}
+        </if>
+        <if test="clazzId != null">
+            AND s.clazz_id = #{clazzId}
+        </if>
+    </where>
+    ORDER BY s.update_time DESC
+    </select>
+    <!-- 根据id查询学员信息 -->
+    <select id="selectById" resultType="com.itheima.pojo.Student">
+        SELECT s.*, c.name AS clazzName
+        FROM student s
+                 LEFT JOIN clazz c ON s.clazz_id = c.id
+        WHERE s.id = #{id}
+    </select>
+    <!-- 统计每一个班级的人数 -->
+    <select id="countStudentClazzData" resultType="java.util.Map">
+        select
+            c.name as clazzName,
+            count(s.id) as total
+        from student s
+                 left join clazz c on s.clazz_id = c.id
+        group by s.clazz_id, c.name
+        order by total desc
+    </select>
+
+</mapper>

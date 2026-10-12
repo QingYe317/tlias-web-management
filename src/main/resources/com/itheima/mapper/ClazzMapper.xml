@@ -1,0 +1,135 @@
+<!--定义Mapper映射文件的约束和基本结构-->
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.ClazzMapper">
+    <!-- 添加班级 -->
+    <insert id="save">
+        insert into clazz
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            name,
+            room,
+            begin_date,
+            end_date,
+            subject,
+            <!-- 新增时间字段 -->
+            create_time,
+            update_time,
+            <if test="clazz.masterId != null">
+                master_id,
+            </if>
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            #{clazz.name},
+            #{clazz.room},
+            #{clazz.beginDate},
+            #{clazz.endDate},
+            #{clazz.subject},
+            <!-- 新增时间字段值 -->
+            #{clazz.createTime},
+            #{clazz.updateTime},
+            <if test="clazz.masterId != null">
+                #{clazz.masterId},
+            </if>
+        </trim>
+    </insert>
+    <!-- 修改班级数据 -->
+    <update id="update">
+        UPDATE clazz
+        <set>
+            <!-- 使用 if 标签实现动态更新，只有非空属性才会更新 -->
+            <if test="clazz.name != null">
+                name = #{clazz.name},
+            </if>
+            <if test="clazz.room != null">
+                room = #{clazz.room},
+            </if>
+            <if test="clazz.beginDate != null">
+                begin_date = #{clazz.beginDate},
+            </if>
+            <if test="clazz.endDate != null">
+                end_date = #{clazz.endDate},
+            </if>
+            <if test="clazz.masterId != null">
+                master_id = #{clazz.masterId},
+            </if>
+            <if test="clazz.subject != null">
+                subject = #{clazz.subject},
+            </if>
+            <!-- 修改时间必须在 Service 层重新赋值，因此这里直接更新 -->
+            <if test="clazz.updateTime != null">
+                update_time = #{clazz.updateTime},
+            </if>
+        </set>
+        WHERE id = #{clazz.id}
+    </update>
+    <!-- 根据id删除班级数据 -->
+    <delete id="deleteById">
+        delete from clazz where id = #{id}
+    </delete>
+    <!-- 查询所有的班级及其对应的班主任名称以及结课状况 -->
+    <select id="list" resultType="com.itheima.pojo.Clazz">
+        SELECT
+        c.id,
+        c.name,
+        c.room,
+        c.begin_date AS beginDate,
+        c.end_date AS endDate,
+        c.master_id AS masterId,
+        c.subject,
+        c.create_time AS createTime,
+        c.update_time AS updateTime,
+        -- 获取班主任姓名，如果没有分配则显示为空
+        IFNULL(e.name, '未分配') AS masterName,
+        -- 根据当前日期动态计算状态
+        CASE
+        WHEN CURDATE() &gt; c.end_date THEN '已结课'
+        WHEN CURDATE() &lt; c.begin_date THEN '未开班'
+        ELSE '在读中'
+        END AS status
+        FROM clazz c
+        LEFT JOIN emp e ON c.master_id = e.id
+        <where>
+            <!-- 根据班级名称模糊查询 -->
+            <if test="name != null and name != ''">
+                AND c.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <!-- 根据开课时间范围查询 -->
+            <if test="begin != null">
+                AND c.begin_date &gt;= #{begin}
+            </if>
+            <if test="end != null">
+                AND c.end_date &lt;= #{end}
+            </if>
+        </where>
+    </select>
+    <!-- 根据ID查询班级 -->
+    <select id="selectById" resultType="com.itheima.pojo.Clazz">
+        SELECT
+            id,
+            name,
+            room,
+            begin_date AS beginDate,
+            end_date AS endDate,
+            master_id AS masterId,
+            subject,
+            create_time AS createTime,
+            update_time AS updateTime
+        FROM clazz
+        WHERE id = #{id}
+    </select>
+    <!-- 查询所有班级 -->
+    <select id="getAll" resultType="com.itheima.pojo.Clazz">
+        SELECT
+            id,
+            name,
+            room,
+            begin_date AS beginDate,
+            end_date AS endDate,
+            master_id AS masterId,
+            subject,
+            create_time AS createTime,
+            update_time AS updateTime
+        FROM clazz
+    </select>
+</mapper>
